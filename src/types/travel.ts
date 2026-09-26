@@ -5,6 +5,7 @@ export interface DayLog {
   title: string;
   description: string;
   photoUrls?: string[]; // 👈 複数枚（配列）に変更！
+  imageUrls?: string[];
 }
 
 // 旅行ログ全体の型定義
@@ -19,6 +20,7 @@ export interface TravelLog {
   rating: number;
   memo?: string;
   days: DayLog[];
+  imageUrls?: string[];
 }
 
 export type CreateTravelLogInput = Omit<
