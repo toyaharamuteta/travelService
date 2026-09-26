@@ -19,7 +19,7 @@ export interface TravelLog {
   totalCost: number;
   rating: number;
   memo?: string;
-  days: DayLog[];
+  days?: DayLog[]; // ← ? を追加して「あってもなくてもOK」にする！
   imageUrls?: string[];
 }
 
