@@ -19,9 +19,32 @@ import {
   onSnapshot, 
   serverTimestamp 
 } from 'firebase/firestore';
+import heic2any from 'heic2any';
 import { auth, googleProvider, db } from './firebase';
 import type { TravelLog, DayLog } from './types/travel';
 import './App.css';
+
+// 📱 iPhoneのHEIC画像を自動でJPG形式に変換する機能
+const convertHeicToJpg = async (file: File): Promise<File> => {
+  const isHeic = file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic' || file.type === 'image/heif';
+
+  if (!isHeic) return file;
+
+  try {
+    const convertedBlob = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.8,
+    });
+
+    const blobResult = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+    const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+    return new File([blobResult], newFileName, { type: 'image/jpeg' });
+  } catch (error) {
+    console.error('HEIC変換エラー:', error);
+    throw error;
+  }
+};
 
 // ⚡ 画像を自動で最適サイズ・高圧縮（約100KB）にする機能
 const compressImage = (file: File, maxWidth = 1000, quality = 0.7): Promise<string> => {
@@ -215,18 +238,27 @@ function App() {
     setDays(updatedDays);
   };
 
+  // 写真選択時の処理 (HEIC変換 ➔ リサイズ圧縮)
   const handlePhotoUpload = async (index: number, files: FileList | null) => {
     if (!files || files.length === 0) return;
 
     try {
       const fileArray = Array.from(files);
+
+      // 1. HEIC画像があればJPGに自動変換
+      const convertedFiles = await Promise.all(
+        fileArray.map((file) => convertHeicToJpg(file))
+      );
+
+      // 2. 変換後のファイルを軽量化（リサイズ・圧縮）
       const compressedDataUrls = await Promise.all(
-        fileArray.map((file) => compressImage(file))
+        convertedFiles.map((file) => compressImage(file))
       );
 
       const currentPhotos = days[index].photoUrls || [];
       handleDayChange(index, 'photoUrls', [...currentPhotos, ...compressedDataUrls]);
     } catch (e) {
+      console.error(e);
       alert('画像の処理に失敗しました');
     }
   };
@@ -516,7 +548,7 @@ function App() {
                   </label>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.heic,.heif"
                     multiple
                     onChange={(e) => handlePhotoUpload(dayIdx, e.target.files)}
                   />
