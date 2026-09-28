@@ -47,7 +47,7 @@ const convertHeicToJpg = async (file: File): Promise<File> => {
 };
 
 // ⚡ 画像を自動で最適サイズ・高圧縮（約100KB）にする機能
-const compressImage = (file: File, maxWidth = 1000, quality = 0.7): Promise<string> => {
+const compressImage = (file: File, maxWidth = 600, quality = 0.5): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
