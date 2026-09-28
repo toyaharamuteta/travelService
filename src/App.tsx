@@ -93,6 +93,9 @@ function App() {
   const [travels, setTravels] = useState<TravelLog[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
 
+  // UI State (展開されている旅行IDの一覧)
+  const [expandedTravelIds, setExpandedTravelIds] = useState<string[]>([]);
+
   // Form State
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -147,6 +150,13 @@ function App() {
 
     return () => unsubscribe();
   }, [user]);
+
+  // 折りたたみの開閉トグル
+  const toggleExpand = (id: string) => {
+    setExpandedTravelIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
   // 認証ハンドラー
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -657,113 +667,148 @@ function App() {
           </div>
         ) : (
           <div style={{ display: 'grid', gap: '20px' }}>
-            {travels.map((travel) => (
-              <div
-                key={travel.id}
-                style={{
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  backgroundColor: '#ffffff',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h2 style={{ margin: 0, color: '#2c3e50', fontSize: '20px' }}>{travel.title}</h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ color: '#f1c40f', fontSize: '18px' }}>
-                      {'★'.repeat(travel.rating)}{'☆'.repeat(5 - travel.rating)}
-                    </span>
+            {travels.map((travel) => {
+              const isExpanded = expandedTravelIds.includes(travel.id);
+              const isDayTrip = travel.startDate === travel.endDate || (travel.days || []).length <= 1;
+
+              return (
+                <div
+                  key={travel.id}
+                  style={{
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    backgroundColor: '#ffffff',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h2 style={{ margin: 0, color: '#2c3e50', fontSize: '20px' }}>{travel.title}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ color: '#f1c40f', fontSize: '18px' }}>
+                        {'★'.repeat(travel.rating)}{'☆'.repeat(5 - travel.rating)}
+                      </span>
+                      <button
+                        onClick={() => handleEditStart(travel)}
+                        style={{
+                          backgroundColor: '#f39c12',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        編集
+                      </button>
+                      <button
+                        onClick={() => handleDelete(travel.id)}
+                        style={{
+                          backgroundColor: '#e74c3c',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        削除
+                      </button>
+                    </div>
+                  </div>
+
+                  <p style={{ margin: '6px 0 12px 0', color: '#666', fontSize: '14px' }}>
+                    📍 {travel.destination} ｜ 🗓 {travel.startDate === travel.endDate ? travel.startDate : `${travel.startDate} 〜 ${travel.endDate}`} ｜ 💰 ¥{travel.totalCost.toLocaleString()}
+                  </p>
+
+                  {travel.memo && (
+                    <p style={{ margin: '0 0 12px 0', padding: '8px 12px', backgroundColor: '#fdfefe', borderLeft: '3px solid #bdc3c7', borderRadius: '4px', fontSize: '13px', color: '#555' }}>
+                      📝 {travel.memo}
+                    </p>
+                  )}
+
+                  {/* アコーディオン開閉ボタン */}
+                  <div style={{ marginTop: '8px' }}>
                     <button
-                      onClick={() => handleEditStart(travel)}
+                      type="button"
+                      onClick={() => toggleExpand(travel.id)}
                       style={{
-                        backgroundColor: '#f39c12',
-                        color: '#fff',
-                        border: 'none',
+                        backgroundColor: '#f1f2f6',
+                        color: '#2f3542',
+                        border: '1px solid #dcdde1',
                         borderRadius: '6px',
-                        padding: '4px 10px',
-                        fontSize: '12px',
+                        padding: '6px 14px',
+                        fontSize: '13px',
                         cursor: 'pointer',
                         fontWeight: 'bold',
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '6px',
                       }}
                     >
-                      編集
-                    </button>
-                    <button
-                      onClick={() => handleDelete(travel.id)}
-                      style={{
-                        backgroundColor: '#e74c3c',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '4px 10px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      削除
+                      {isExpanded ? '▲ 日程・詳細をたたむ' : `▼ 日程・詳細を見る (${(travel.days || []).length}件)`}
                     </button>
                   </div>
-                </div>
 
-                <p style={{ margin: '6px 0 12px 0', color: '#666', fontSize: '14px' }}>
-                  📍 {travel.destination} ｜ 🗓 {travel.startDate} 〜 {travel.endDate} ｜ 💰 ¥{travel.totalCost.toLocaleString()}
-                </p>
+                  {/* 日ごとのタイムライン (アコーディオン開閉) */}
+                  {isExpanded && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                      {(travel.days || []).map((day) => (
+                        <div
+                          key={day.id || day.dayNumber}
+                          style={{
+                            backgroundColor: '#f8f9fa',
+                            borderLeft: '4px solid #3498db',
+                            borderRadius: '0 8px 8px 0',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                          }}
+                        >
+                          {/* 日帰りでなければ「◯日目」を表示 */}
+                          {!isDayTrip && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#e67e22', backgroundColor: '#fef5e7', padding: '2px 8px', borderRadius: '4px' }}>
+                                {day.dayNumber} 日目
+                              </span>
+                            </div>
+                          )}
 
-                {travel.memo && (
-                  <p style={{ margin: '0 0 12px 0', padding: '8px 12px', backgroundColor: '#fdfefe', borderLeft: '3px solid #bdc3c7', borderRadius: '4px', fontSize: '13px', color: '#555' }}>
-                    📝 {travel.memo}
-                  </p>
-                )}
+                          {day.title && <h4 style={{ margin: 0, color: '#333', fontSize: '15px' }}>{day.title}</h4>}
+                          {day.description && <p style={{ margin: 0, fontSize: '13px', color: '#555', lineHeight: '1.4' }}>{day.description}</p>}
 
-                {/* 日ごとのタイムライン */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
-                  {(travel.days || []).map((day) => (
-                    <div
-                      key={day.id || day.dayNumber}
-                      style={{
-                        backgroundColor: '#f8f9fa',
-                        borderLeft: '4px solid #3498db',
-                        borderRadius: '0 8px 8px 0',
-                        padding: '12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#e67e22', backgroundColor: '#fef5e7', padding: '2px 8px', borderRadius: '4px' }}>
-                          {day.dayNumber} 日目
-                        </span>
-                      </div>
-
-                      <h4 style={{ margin: 0, color: '#333', fontSize: '15px' }}>{day.title}</h4>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#555', lineHeight: '1.4' }}>{day.description}</p>
-
-                      {day.photoUrls && day.photoUrls.length > 0 && (
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
-                          {day.photoUrls.map((url, pIdx) => (
-                            <img
-                              key={pIdx}
-                              src={url}
-                              alt={`${day.title} - ${pIdx + 1}`}
-                              style={{
-                                width: '120px',
-                                height: '90px',
-                                objectFit: 'cover',
-                                borderRadius: '8px',
-                                boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-                              }}
-                            />
-                          ))}
+                          {day.photoUrls && day.photoUrls.length > 0 && (
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                              {day.photoUrls.map((url, pIdx) => (
+                                <img
+                                  key={pIdx}
+                                  src={url}
+                                  alt={`${day.title || '写真'} - ${pIdx + 1}`}
+                                  style={{
+                                    width: '120px',
+                                    height: '90px',
+                                    objectFit: 'cover',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
